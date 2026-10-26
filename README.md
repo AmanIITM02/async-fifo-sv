@@ -1,33 +1,48 @@
 # Parameterized Asynchronous FIFO with Assertion-Based Verification (ABV)
 
-A multi-channel Asynchronous FIFO (First-In, First-Out) design in SystemVerilog engineered to safely transfer data across unsynchronized Clock Domain Crossings (CDC). This architecture utilizes 2-stage flip-flop synchronizers combined with Gray code pointer conversion to eliminate metastability risks and multi-bit bus-skew errors.
+A high-performance, parameterized Asynchronous FIFO (First-In, First-Out) architecture written in SystemVerilog (IEEE 1800). This design safely transfers multi-bit data across unsynchronized Clock Domain Crossings (CDC) without risking metastability, data corruption, or multi-bit bus-skew errors.
 
 ---
 
-## 🏛️ Architecture & CDC Logic
+## Architecture & CDC Engineering
 
-* **Write Domain (`wclk`):** Operates on a high-speed write clock (e.g., 100 MHz), driving data bursts into dual-port memory arrays.
-* **Read Domain (`rclk`):** Operates on an asynchronous read clock (e.g., 40 MHz), reading sequential data independently.
-* **2-Flop Synchronizers:** Cross-synchronizes binary pointers between unsynchronized clock boundaries to prevent metastability.
-* **Gray Code Pointer Conversion:** Converts binary write and read pointers into Gray code prior to synchronization, ensuring only a single bit changes per clock edge to prevent bus-skew timing errors.
-* **Full/Empty Detection:** Evaluates FIFO boundary status flags in real-time across separate clock domains.
-* **Assertion-Based Verification (ABV):** Includes real-time assertion checks to flag write overflow and read underflow conditions.
+Modern System-on-Chip (SoC) architectures require reliable communication between independent clock domains. This module implements robust hardware mitigations for CDC hazards:
 
----
-
-## 🛠️ Toolchain & Specifications
-
-* **Language:** SystemVerilog (IEEE 1800 standard)
-* **Simulation Engine:** Icarus Verilog (`iverilog` -g2012)
-* **Waveform Visualization:** GTKWave / Value Change Dump (`fifo_trace.vcd`)
+* Dual-Clock Domain Isolation: Write domain (wclk) and Read domain (rclk) operate completely asynchronously with independent frequency and phase relationships.
+* Gray Code Pointer Conversion: Binary read/write pointers are converted to Gray code before crossing clock boundaries. Gray pointers guarantee that only a single bit toggles per clock transition, eliminating multi-bit bus skew.
+* 2-Stage Flip-Flop Synchronizers: Cross-domain pointers are synchronized via cascaded 2-flop synchronizer pipelines (wq2_rptr, rq2_wptr) to allow metastable signals to safely settle before consumption.
+* Pessimistically Safe Flag Logic:
+  * rempty Flag: Evaluated in the read domain when the local Gray pointer matches the synchronized write pointer.
+  * wfull Flag: Evaluated in the write domain when the local Gray pointer matches the synchronized read pointer with the two most significant bits (MSB & MSB-1) inverted to account for pointer wrap-around.
+* Assertion-Based Verification (ABV): Features embedded procedural assertions to catch write-overflow and read-underflow boundary violations instantly during simulation runs.
 
 ---
 
-## 🚀 How to Build and Run Simulation
+## Toolchain & Tech Stack
+
+* Hardware Description Language: SystemVerilog (IEEE 1800)
+* Simulation Engine: Icarus Verilog (iverilog -g2012)
+* Execution & Verification: vvp runtime engine
+* Waveform Trace Analysis: GTKWave (fifo_trace.vcd)
+
+---
+
+## Directory Structure
+
+async_fifo.sv       # Parameterized Asynchronous FIFO RTL & CDC Synchronizers
+tb_async_fifo.sv    # Dual-clock asynchronous simulation testbench
+README.md           # Architecture and verification documentation
+fifo_trace.vcd      # Simulation waveform output trace
+
+---
+
+## Build and Verification Guide
 
 ### 1. Compile SystemVerilog Modules
-```bash
 iverilog -g2012 -o fifo_sim async_fifo.sv tb_async_fifo.sv
-vvp fifo_sim
-gtkwave fifo_trace.vcd
 
+### 2. Execute Testbench Simulation
+vvp fifo_sim
+
+### 3. Waveform Visualization
+gtkwave fifo_trace.vcd
