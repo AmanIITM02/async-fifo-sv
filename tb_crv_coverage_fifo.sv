@@ -1,15 +1,15 @@
 module tb_crv_coverage_fifo;
 
-    parameter DSIZE = 8;
-    parameter ASIZE = 4;
+    parameter DATA_WIDTH = 8;
+    parameter ADDR_WIDTH = 4;
 
-    logic             wclk, wrst_n, winc;
-    logic [DSIZE-1:0] wdata;
-    logic             wfull;
+    logic                  wclk, wrst_n, winc;
+    logic [DATA_WIDTH-1:0] wdata;
+    logic                  wfull;
 
-    logic             rclk, rrst_n, rinc;
-    logic [DSIZE-1:0] rdata;
-    logic             rempty;
+    logic                  rclk, rrst_n, rinc;
+    logic [DATA_WIDTH-1:0] rdata;
+    logic                  rempty;
 
     // Coverage Bin Counters
     int full_hit_count  = 0;
@@ -17,11 +17,22 @@ module tb_crv_coverage_fifo;
     int write_count     = 0;
     int read_count      = 0;
 
-    // Instantiate Async FIFO DUT
+    // Instantiate Async FIFO DUT with corrected port bindings
     async_fifo #(
-        .DSIZE(DSIZE),
-        .ASIZE(ASIZE)
-    ) dut (.*);
+        .DATA_WIDTH(DATA_WIDTH),
+        .ADDR_WIDTH(ADDR_WIDTH)
+    ) dut (
+        .wclk   (wclk),
+        .wrst_n (wrst_n),
+        .w_inc  (winc),
+        .wdata  (wdata),
+        .wfull  (wfull),
+        .rclk   (rclk),
+        .rrst_n (rrst_n),
+        .r_inc  (rinc),
+        .rdata  (rdata),
+        .rempty (rempty)
+    );
 
     // Dual Clock Generation
     always #5   wclk = ~wclk;  // 100 MHz Write Clock
@@ -49,14 +60,14 @@ module tb_crv_coverage_fifo;
 
         $display("\n=== STARTING CONSTRAINED-RANDOM & COVERAGE SIMULATION ===");
 
-        // Constrained-Random Write Burst to Stress Full Boundary
+        // Constrained-Random Write Burst
         repeat (30) begin
             @(posedge wclk);
             winc  <= $urandom_range(0, 1);
             wdata <= $urandom_range(8'h10, 8'hFF);
         end
 
-        // Constrained-Random Read Burst to Stress Empty Boundary
+        // Constrained-Random Read Burst
         repeat (30) begin
             @(posedge rclk);
             rinc <= $urandom_range(0, 1);
